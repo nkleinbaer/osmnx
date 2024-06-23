@@ -33,6 +33,8 @@ try:
     from matplotlib import colors
     from matplotlib.axes._axes import Axes  # noqa: TCH002
     from matplotlib.figure import Figure  # noqa: TCH002
+    from matplotlib.lines import Line2D
+    from matplotlib.animation import FuncAnimation
     from matplotlib.projections.polar import PolarAxes  # noqa: TCH002
 
     mpl_available = True
@@ -304,6 +306,7 @@ def plot_graph_route(
     route_alpha: float = 0.5,
     orig_dest_size: float = 100,
     ax: Axes | None = None,
+    animate: bool = False,
     **pg_kwargs: Any,  # noqa: ANN401
 ) -> tuple[Figure, Axes]:
     """
@@ -362,8 +365,22 @@ def plot_graph_route(
             # otherwise, the edge is a straight line from node to node
             x.extend((G.nodes[u]["x"], G.nodes[v]["x"]))
             y.extend((G.nodes[u]["y"], G.nodes[v]["y"]))
-    ax.plot(x, y, c=route_color, lw=route_linewidth, alpha=route_alpha)
 
+    if animate:
+        route_coords = list(zip(x, y))
+        lines = ax.plot([], [], c=route_color, lw=route_linewidth, alpha=route_alpha)
+
+        def update_route_lines(route_coord: tuple(float, float)) -> list[Line2D]:
+            x, y = route_coord
+            xdata,  ydata = lines[0].get_data()
+            xdata = np.append(xdata, x)
+            ydata = np.append(ydata, y)
+            lines[0].set_data(xdata, ydata)
+            return lines
+
+        ani = FuncAnimation(fig, update_route_lines, route_coords)
+    else:
+        ax.plot(x, y, c=route_color, lw=route_linewidth, alpha=route_alpha)
     # save and show the figure as specified, passing relevant kwargs
     sas_kwargs = {"show", "close", "save", "filepath", "dpi"}
     kwargs = {k: v for k, v in pg_kwargs.items() if k in sas_kwargs}
@@ -1051,7 +1068,6 @@ def _get_fig_ax(
         fig = ax.figure  # type: ignore[assignment]
 
     return fig, ax
-
 
 def _verify_mpl() -> None:
     """
