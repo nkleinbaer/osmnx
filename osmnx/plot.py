@@ -372,7 +372,7 @@ def animate_graph_route(
     route_alpha: float = 0.5,
     orig_dest_size: float = 100,
     ax: Axes | None = None,
-    **pg_kwargs: Any,  # noqa: ANN401
+    **kwargs: Any,  # noqa: ANN401
 ) -> tuple[Figure, Axes]:
     """
     Visualize a path along a graph.
@@ -393,14 +393,77 @@ def animate_graph_route(
         Size of the origin and destination nodes.
     ax
         If not None, plot on this pre-existing axes instance.
-    **pg_kwargs
-        Keyword arguments to pass to `plot_graph`.
+    **kwargs
+        Keyword arguments to pass to `plot_graph`, `FuncAnimation`, `Animation.save` or `savefig`.
 
     Returns
     -------
     fig, ax
         The resulting matplotlib figure and axes objects.
     """
+    # pg_kwargs,
+    PG_KWARGS = [
+        "figsize",
+        "bgcolor",
+        "node_color",
+        "node_size",
+        "node_alpha",
+        "node_edgecolor",
+        "node_zorder",
+        "edge_color",
+        "edge_linewidth",
+        "edge_alpha",
+        "bbox",
+        "show",
+        "close",
+        "save",
+        "filepath",
+        "dpi",
+    ]
+
+    FUNCANI_KWARGS = [
+        "save_count",
+        "interval",
+        "repeat_delay",
+        "repeat",
+        "blit",
+        "cache_frame_data",
+    ]
+
+    ANISAVE_KWARGS = [
+        "filename",
+        "writer",
+        "fps",
+        "dpi",
+        "codec",
+        "bitrate",
+        "extra_args",
+        "metadata",
+        "extra_anim",
+        "savefig_kwargs",
+        "progress_callback",
+    ]
+    SAVEFIG_KWARGS = [
+        "transparent",
+        "dpi",
+        "format",
+        "metadata",
+        "bbox_inches",
+        "pad_inches",
+        "facecolor",
+        "edgecolor",
+        "backend",
+        "orientation",
+        "papertype",
+        "bbox_extra_artists",
+        "pil_kwargs",
+    ]
+
+    pg_kwargs = {key: value for key, value in kwargs.items() if key in PG_KWARGS}
+    funcani_kwargs = {key: value for key, value in kwargs.items() if key in FUNCANI_KWARGS}
+    anisave_kwargs = {key: value for key, value in kwargs.items() if key in ANISAVE_KWARGS}
+    savefig_kwargs = {key: value for key, value in kwargs.items() if key in SAVEFIG_KWARGS}
+
     fig, ax, x, y = _prepare_graph_route_plot(
         G,
         route,
@@ -442,7 +505,14 @@ def animate_graph_route(
         leader_line[0].set_data([], [])
         return route_line + leader_line
 
-    ani = FuncAnimation(fig, update_route_lines, edge_coords, repeat=False, init_func=init_func)
+    ani = FuncAnimation(
+        fig,
+        update_route_lines,
+        edge_coords,
+        repeat=False,
+        init_func=init_func,
+        **funcani_kwargs,
+    )
 
     # save/show/close as specified
     if pg_kwargs.get("save", False):
@@ -451,7 +521,7 @@ def animate_graph_route(
         fp = Path(settings.imgs_folder) / "animation.gif" if filepath is None else Path(filepath)
         # if save folder does not already exist, create it
         fp.parent.mkdir(parents=True, exist_ok=True)
-        ani.save(fp, dpi=pg_kwargs.get("dpi", 300))
+        ani.save(fp, dpi=pg_kwargs.get("dpi", 300), savefig_kwargs=savefig_kwargs, **anisave_kwargs)
     if pg_kwargs.get("show", True):
         plt.show()
     if pg_kwargs.get("close", True):
